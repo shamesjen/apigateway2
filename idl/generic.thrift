@@ -1,3 +1,13 @@
-service Calculator {
-    i32 add(1: i32 num1, 2: i32 num2),
+namespace go echo
+
+struct Request {
+	1: string message
+}
+
+struct Response {
+	1: string message
+}
+
+service Echo {
+    Response echo(1: Request req)
 }

@@ -3,28 +3,29 @@
 package main
 
 import (
-	"bytes"
+	//"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
+	//"net/http"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
+	//"github.com/cloudwego/kitex-examples/kitex_gen/pbapi/echo"
 	"github.com/cloudwego/kitex/client"
 	"github.com/cloudwego/kitex/client/genericclient"
 	"github.com/cloudwego/kitex/pkg/generic"
 )
 
 func main() {
-	h := server.Default()
+	h := server.Default(server.WithHostPorts(":8080"))
 
 	h.GET("/get", func(ctx context.Context, c *app.RequestContext) {
 		c.String(consts.StatusOK, "get")
 	})
-	
+
 	h.POST("/post", func(ctx context.Context, c *app.RequestContext) {
 		//url to sendreq?
 		var requestURL string = "http://example.com/life/client/11?vint64=1&items=item0,item1,item2"
@@ -54,7 +55,7 @@ func main() {
 
 		//working until here
 
-		responseFromRPC, err := makeThriftCall(IDLPATH, response, requestURL, ctx)
+		responseFromRPC, err := makeThriftCall(IDLPATH, response, requestURL, ctx, dataValue)
 
 		if err != nil {
 			fmt.Println(err)
@@ -67,46 +68,45 @@ func main() {
 		c.JSON(consts.StatusOK, responseFromRPC)
 	})
 
-
-
 	register(h)
 	h.Spin()
 }
 
-func makeThriftCall(IDLPath string, response []byte, requestURL string, ctx context.Context) (interface{}, error) {
+func makeThriftCall(IDLPath string, response []byte, requestURL string, ctx context.Context, dataValue string) (interface{}, error) {
 	p, err := generic.NewThriftFileProvider(IDLPath)
 	if err != nil {
 		fmt.Println("error creating thrift file provider")
 		return 0, err
 	}
+	fmt.Println(dataValue)
 	g, err := generic.JSONThriftGeneric(p)
 	if err != nil {
 		return 0, errors.New(("error creating thrift generic"))
 	}
 
-	cli, err := genericclient.NewClient("hello", g, client.WithHostPorts("0.0.0.0:8888"))
+	cli, err := genericclient.NewClient("Echo", g, client.WithHostPorts("0.0.0.0:8888"))
 
 	if err != nil {
 		return 0, errors.New(("invalid client name"))
 	}
 
-	req, err := http.NewRequest(http.MethodGet, requestURL, bytes.NewBuffer(response))
-	req.Header.Set("token", "1")
-	if err != nil {
-		fmt.Println("error construting req")
-		return 0, err
-	}
+	// req, err := http.NewRequest(http.MethodGet, requestURL, bytes.NewBuffer(response))
+	// req.Header.Set("token", "1")
+	// if err != nil {
+	// 	fmt.Println("error construting req")
+	// 	return 0, err
+	// }
 
-	customReq, err := generic.FromHTTPRequest(req)
+	// customReq, err := generic.FromHTTPRequest(req)
 
-	if err != nil {
-		fmt.Println("error constructing xcustom req")
-		return 0, err
-	}
+	// if err != nil {
+	// 	fmt.Println("error constructing xcustom req")
+	// 	return 0, err
+	// }
 
-	fmt.Println(customReq)
+	// fmt.Println(customReq)
 
-	resp, err := cli.GenericCall(ctx, "hello", customReq)
+	resp, err := cli.GenericCall(ctx, "echo", dataValue)
 
 	fmt.Println("generic call successful")
 	fmt.Println(resp)
@@ -116,7 +116,7 @@ func makeThriftCall(IDLPath string, response []byte, requestURL string, ctx cont
 		return 0, err
 	}
 
-	realResp := resp.(*generic.HTTPResponse)
+	realResp := resp
 
 	return realResp, nil
 }
